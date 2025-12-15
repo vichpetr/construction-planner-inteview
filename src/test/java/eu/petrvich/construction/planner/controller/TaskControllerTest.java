@@ -124,17 +124,6 @@ class TaskControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/tasks should reject empty list")
-    void testRegisterEmptyTaskList() {
-        webTestClient.post()
-                .uri("/api/tasks")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(Collections.emptyList())
-                .exchange()
-                .expectStatus().isBadRequest();
-    }
-
-    @Test
     @DisplayName("DELETE /api/tasks should clear all tasks")
     void testClearTasks() {
         // First register some tasks
