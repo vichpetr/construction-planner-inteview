@@ -1,15 +1,19 @@
 plugins {
     java
-    id("org.springframework.boot") version "4.0.0"
-    id("io.spring.dependency-management") version "1.1.7"
+    id("org.springframework.boot")
+    id("io.spring.dependency-management")
 }
 
-group = "com.construction"
+group = "eu.petrvich.construction"
 version = "1.0.0"
+
+// dependencies
+val testcontainersVersion: String by project
+val testcontainersJUnitVersion: String by project
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(25)
     }
 }
 
@@ -33,8 +37,8 @@ dependencies {
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-    testImplementation("org.testcontainers:testcontainers:1.19.3")
-    testImplementation("org.testcontainers:junit-jupiter:1.19.3")
+    testImplementation("org.testcontainers:testcontainers:${testcontainersVersion}")
+    testImplementation("org.testcontainers:junit-jupiter:${testcontainersJUnitVersion}")
 
     // Test Lombok
     testCompileOnly("org.projectlombok:lombok")
@@ -46,5 +50,5 @@ tasks.withType<Test> {
 }
 
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
-    archiveFileName.set("construction-planner.jar")
+    archiveFileName.set("construction-planner-${version}.jar")
 }

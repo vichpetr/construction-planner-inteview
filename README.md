@@ -8,7 +8,7 @@ This application implements the Critical Path Method (CPM) to determine the most
 ### 1. Project Setup
 - [x] Initialize Git repository
 - [x] Create Spring Boot 4 application with Gradle KTS
-- [x] Configure Java 21+
+- [x] Configure Java 25
 - [x] Set up project structure
 
 ### 2. Domain Model
