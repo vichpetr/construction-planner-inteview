@@ -67,7 +67,9 @@ tasks.jacocoTestReport {
     reports {
         xml.required.set(true)
         html.required.set(true)
-        csv.required.set(false)
+        // Enable CSV to support jacoco-badge-generator action (expects CSV at
+        // build/reports/jacoco/test/jacocoTestReport.csv)
+        csv.required.set(true)
     }
 }
 

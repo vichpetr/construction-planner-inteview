@@ -450,15 +450,6 @@ Running the application with the provided LEO2-BE.json file:
 - ✓ API responses are consistent across calls
 - ✓ Tasks fit within a project duration
 
-### Test Results
-```
-BUILD SUCCESSFUL
-Total tests: 27
-Passed: 27
-Failed: 0
-Coverage: Core business logic 100%
-```
-
 ## Configuration Examples
 
 ### Production Configuration
@@ -610,26 +601,6 @@ HTTP Request/Response Log:
   Status: 200
   Duration: 12 ms
 ```
-
-## Troubleshooting
-
-### Common Issues
-
-**Issue**: Application fails to start
-- **Cause**: Missing or invalid `tasks.json` file
-- **Solution**: Ensure `src/main/resources/tasks.json` exists and is valid JSON
-
-**Issue**: Cache not working
-- **Cause**: Cache disabled in configuration
-- **Solution**: Set `app.cache.enabled=true` in `application.properties`
-
-**Issue**: Validation errors not showing field details
-- **Cause**: Using old error handler
-- **Solution**: Ensure `GlobalExceptionHandler` is being used (should be automatic)
-
-**Issue**: Request logging not working
-- **Cause**: Logging disabled or filter not registered
-- **Solution**: Set `app.logging.request-response.enabled=true` and restart
 
 ## Future Enhancements
 
