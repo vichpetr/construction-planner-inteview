@@ -27,13 +27,6 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Thread-safe method to enable/disable logging at runtime.
-     */
-    public void setEnabled(boolean enabled) {
-        this.enabled.set(enabled);
-    }
-
-    /**
      * Thread-safe check if logging is enabled.
      */
     public boolean isEnabled() {

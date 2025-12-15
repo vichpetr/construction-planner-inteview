@@ -20,7 +20,7 @@ public class LoggingConfig {
     private final AppProperties appProperties;
 
     @Bean
-    @ConditionalOnProperty(name = "app.logging.request-response.enabled", havingValue = "true", matchIfMissing = false)
+    @ConditionalOnProperty(name = "app.logging.request-response.enabled", havingValue = "true")
     public FilterRegistrationBean<RequestResponseLoggingFilter> requestResponseLoggingFilter() {
         boolean enabled = appProperties.getLogging().getRequestResponse().isEnabled();
 

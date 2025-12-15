@@ -35,8 +35,6 @@ public class GlobalExceptionHandler {
 
     public static final String INVALID_PARAMETER_VALUE = "INVALID_PARAMETER_VALUE";
 
-    private final AppProperties appProperties;
-
     @ExceptionHandler(InvalidTaskDependencyException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorRecord handleInvalidTaskDependency(InvalidTaskDependencyException e, HttpServletRequest request) {
