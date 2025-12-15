@@ -10,6 +10,7 @@ version = "1.0.0"
 // dependencies
 val testcontainersVersion: String by project
 val testcontainersJUnitVersion: String by project
+val springdocOpenapiStarterWebmvcUi: String by project
 
 java {
     toolchain {
@@ -28,7 +29,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-json")
 
     // OpenAPI/Swagger documentation
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${springdocOpenapiStarterWebmvcUi}")
 
     // JSON processing
     implementation("com.fasterxml.jackson.core:jackson-databind")
