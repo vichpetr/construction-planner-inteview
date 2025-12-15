@@ -283,7 +283,7 @@ Running the application with the provided LEO2-BE.json file:
 - ✓ Task intervals are correctly calculated
 - ✓ Dependencies are satisfied (predecessors finish before successors)
 - ✓ API responses are consistent across calls
-- ✓ Tasks fit within project duration
+- ✓ Tasks fit within a project duration
 
 ### Test Results
 ```

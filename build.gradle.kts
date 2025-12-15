@@ -39,6 +39,8 @@ dependencies {
     // Micrometer for metrics
     implementation("io.micrometer:micrometer-core")
 
+    implementation("com.github.ben-manes.caffeine:caffeine")
+
     // Lombok for reducing boilerplate
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")

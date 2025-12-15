@@ -1,13 +1,16 @@
 package eu.petrvich.construction.planner.config;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.Duration;
 
 /**
  * Configuration for caching project statistics.
@@ -28,9 +31,11 @@ public class CacheConfig {
 
     @Bean
     public CacheManager cacheManager() {
-        log.info("Configuring cache manager with cache: {} (enabled: {})",
-                PROJECT_STATISTICS_CACHE,
-                appProperties.getCache().isEnabled());
-        return new ConcurrentMapCacheManager(PROJECT_STATISTICS_CACHE);
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager(PROJECT_STATISTICS_CACHE);
+        cacheManager.setCaffeine(Caffeine.newBuilder()
+                .maximumSize(1000)
+                .expireAfterWrite(Duration.ofHours(1))
+                .recordStats());
+        return cacheManager;
     }
 }

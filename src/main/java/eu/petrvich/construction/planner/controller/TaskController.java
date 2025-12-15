@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -71,7 +72,7 @@ public class TaskController {
     @PostMapping
     public ResponseEntity<Map<String, Object>> registerTasks(
             @Parameter(description = "List of tasks to register", required = true)
-            @Valid @RequestBody List<@Valid Task> tasks) {
+            @Valid @RequestBody @Size(min = 1, max = 10_000, message = "Task list must contain between 1 and 1000 tasks") List<@Valid Task> tasks) {
         log.info("POST /api/tasks with {} tasks", tasks != null ? tasks.size() : 0);
 
         taskDataService.registerTasks(tasks);
