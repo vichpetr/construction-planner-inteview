@@ -7,7 +7,6 @@ import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 
 import java.time.ZonedDateTime;
-import java.util.Map;
 
 @UtilityClass
 public class ErrorRecordBuilder {

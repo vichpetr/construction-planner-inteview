@@ -26,12 +26,15 @@ public class CpmService {
      *
      * @param tasks List of all tasks with dependencies
      * @return The total project duration
+     * @throws InvalidTaskDependencyException if duplicate task codes are found
      */
     public int calculateCriticalPath(List<Task> tasks) {
         if (tasks == null || tasks.isEmpty()) {
             log.warn("No tasks provided for CPM calculation");
             return 0;
         }
+
+        validateDuplicateTaskCodes(tasks);
 
         Map<String, Task> taskMap = tasks.stream()
                 .collect(Collectors.toMap(Task::getTaskCode, task -> task));
@@ -47,6 +50,32 @@ public class CpmService {
                 tasks.stream().filter(Task::isCritical).count());
 
         return projectDuration;
+    }
+
+    /**
+     * Validates that there are no duplicate task codes in the task list.
+     *
+     * @param tasks List of tasks to validate
+     * @throws InvalidTaskDependencyException if duplicate task codes are found
+     */
+    private void validateDuplicateTaskCodes(List<Task> tasks) {
+        Map<String, Long> taskCodeCounts = tasks.stream()
+                .map(Task::getTaskCode)
+                .collect(Collectors.groupingBy(code -> code, Collectors.counting()));
+
+        List<String> duplicates = taskCodeCounts.entrySet().stream()
+                .filter(entry -> entry.getValue() > 1)
+                .map(entry -> String.format("'%s' (appears %d times)", entry.getKey(), entry.getValue()))
+                .toList();
+
+        if (!duplicates.isEmpty()) {
+            String errorMsg = String.format(
+                "Duplicate task codes detected: %s. Each task must have a unique task code.",
+                String.join(", ", duplicates)
+            );
+            log.error(errorMsg);
+            throw new InvalidTaskDependencyException(errorMsg);
+        }
     }
 
     private void validateDependencies(List<Task> tasks, Map<String, Task> taskMap) {

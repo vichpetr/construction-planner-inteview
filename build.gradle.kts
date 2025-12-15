@@ -27,12 +27,17 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-json")
+    implementation("org.springframework.boot:spring-boot-starter-cache")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
 
     // OpenAPI/Swagger documentation
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${springdocOpenapiStarterWebmvcUi}")
 
     // JSON processing
     implementation("com.fasterxml.jackson.core:jackson-databind")
+
+    // Micrometer for metrics
+    implementation("io.micrometer:micrometer-core")
 
     // Lombok for reducing boilerplate
     compileOnly("org.projectlombok:lombok")

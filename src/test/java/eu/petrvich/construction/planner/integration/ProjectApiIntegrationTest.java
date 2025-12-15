@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.petrvich.construction.planner.model.ProjectStatistics;
 import eu.petrvich.construction.planner.model.Task;
 import eu.petrvich.construction.planner.model.TaskWithIntervals;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Tests the full application stack including task registration, CPM calculation, and API responses.
  * Each test loads tasks from tasks.json before execution to ensure test isolation.
  */
+@Slf4j
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class ProjectApiIntegrationTest {
 
@@ -46,8 +48,8 @@ class ProjectApiIntegrationTest {
         // Load tasks from tasks.json and register them
         ClassPathResource tasksResource = new ClassPathResource("tasks.json");
         List<Task> tasks = objectMapper.readValue(
-                tasksResource.getInputStream(),
-                new TypeReference<List<Task>>() {}
+                tasksResource.getInputStream(), new TypeReference<>() {
+                }
         );
 
         // Register tasks via POST /api/tasks
@@ -89,9 +91,9 @@ class ProjectApiIntegrationTest {
                 "Peak crew utilization should be greater than 0");
 
         // Log the actual values for verification
-        System.out.println("Project Statistics:");
-        System.out.println("  Total Duration: " + statistics.getTotalProjectDuration());
-        System.out.println("  Peak Crew: " + statistics.getPeakCrewUtilization());
+        log.info("Project Statistics:");
+        log.info("  Total Duration: {}", statistics.getTotalProjectDuration());
+        log.info("  Peak Crew: {}", statistics.getPeakCrewUtilization());
     }
 
     @Test
@@ -122,9 +124,8 @@ class ProjectApiIntegrationTest {
                     "End interval should equal start interval + duration");
         }
 
-        System.out.println("Total tasks loaded: " + tasks.size());
-        System.out.println("Sample task: " + tasks.get(0).getTaskCode() +
-                " [" + tasks.get(0).getStartInterval() + "-" + tasks.get(0).getEndInterval() + "]");
+        log.info("Total tasks loaded: {}", tasks.size());
+        log.info("Sample task: {} [{}-{}]", tasks.getFirst().getTaskCode(), tasks.getFirst().getStartInterval(), tasks.getFirst().getEndInterval());
     }
 
     @Test
@@ -141,14 +142,12 @@ class ProjectApiIntegrationTest {
 
         assertNotNull(tasks);
 
-        // Create a map of tasks for dependency validation
         var taskMap = tasks.stream()
                 .collect(java.util.stream.Collectors.toMap(
                         TaskWithIntervals::getTaskCode,
                         t -> t
                 ));
 
-        // Verify dependencies are satisfied (predecessor finishes before successor starts)
         for (TaskWithIntervals task : tasks) {
             if (task.getDependencies() != null && !task.getDependencies().isEmpty()) {
                 for (String depCode : task.getDependencies()) {
@@ -170,7 +169,6 @@ class ProjectApiIntegrationTest {
     @Test
     @DisplayName("GET /api/project/statistics should be consistent across multiple calls")
     void testStatisticsConsistency() {
-        // Call the endpoint multiple times
         ProjectStatistics stats1 = webTestClient.get()
                 .uri("/api/project/statistics")
                 .accept(MediaType.APPLICATION_JSON)
@@ -192,11 +190,8 @@ class ProjectApiIntegrationTest {
         assertNotNull(stats1);
         assertNotNull(stats2);
 
-        // They should be identical
-        assertEquals(stats1.getTotalProjectDuration(), stats2.getTotalProjectDuration(),
-                "Project duration should be consistent");
-        assertEquals(stats1.getPeakCrewUtilization(), stats2.getPeakCrewUtilization(),
-                "Peak crew utilization should be consistent");
+        assertEquals(stats1.getTotalProjectDuration(), stats2.getTotalProjectDuration(), "Project duration should be consistent");
+        assertEquals(stats1.getPeakCrewUtilization(), stats2.getPeakCrewUtilization(), "Peak crew utilization should be consistent");
     }
 
     @Test
@@ -213,7 +208,6 @@ class ProjectApiIntegrationTest {
 
         assertNotNull(tasks);
 
-        // Count tasks with and without crew
         long tasksWithCrew = tasks.stream()
                 .filter(t -> t.getCrew() != null)
                 .count();
@@ -222,10 +216,9 @@ class ProjectApiIntegrationTest {
                 .filter(t -> t.getCrew() == null)
                 .count();
 
-        System.out.println("Tasks with crew: " + tasksWithCrew);
-        System.out.println("Tasks without crew: " + tasksWithoutCrew);
+        log.info("Tasks with crew: {}", tasksWithCrew);
+        log.info("Tasks without crew: {}", tasksWithoutCrew);
 
-        // Verify crew assignments are non-negative
         for (TaskWithIntervals task : tasks) {
             if (task.getCrew() != null) {
                 assertTrue(task.getCrew().getAssignment() >= 0,
@@ -237,7 +230,6 @@ class ProjectApiIntegrationTest {
     @Test
     @DisplayName("GET /api/project/tasks should return tasks in valid time range")
     void testTaskTimeRange() {
-        // First get the project statistics to know the total duration
         ProjectStatistics statistics = webTestClient.get()
                 .uri("/api/project/statistics")
                 .accept(MediaType.APPLICATION_JSON)
@@ -249,7 +241,6 @@ class ProjectApiIntegrationTest {
 
         assertNotNull(statistics);
 
-        // Get all tasks
         List<TaskWithIntervals> tasks = webTestClient.get()
                 .uri("/api/project/tasks")
                 .accept(MediaType.APPLICATION_JSON)
@@ -261,7 +252,6 @@ class ProjectApiIntegrationTest {
 
         assertNotNull(tasks);
 
-        // Verify all tasks fit within the project duration
         for (TaskWithIntervals task : tasks) {
             assertTrue(task.getStartInterval() >= 0,
                     "Task start should be non-negative");

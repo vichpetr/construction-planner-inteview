@@ -2,6 +2,10 @@ package eu.petrvich.construction.planner.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -13,24 +17,31 @@ import java.util.List;
 public class Task {
 
     @JsonProperty
+    @NotBlank(message = "Task code is required and cannot be blank")
     private String taskCode;
 
     @JsonProperty
+    @NotBlank(message = "Operation name is required and cannot be blank")
     private String operationName;
 
     @JsonProperty
     private String elementName;
 
     @JsonProperty
+    @Positive(message = "Duration must be a positive number")
     private int duration;
 
     @JsonProperty
+    @Valid
     private Crew crew;
 
     @JsonProperty
+    @Valid
+    @NotNull(message = "Equipment list cannot be null")
     private List<Equipment> equipment = new ArrayList<>();
 
     @JsonProperty
+    @NotNull(message = "Dependencies list cannot be null")
     private List<String> dependencies = new ArrayList<>();
 
     @JsonIgnore
