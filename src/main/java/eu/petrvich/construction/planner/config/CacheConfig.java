@@ -27,8 +27,6 @@ public class CacheConfig {
 
     public static final String PROJECT_STATISTICS_CACHE = "projectStatistics";
 
-    private final AppProperties appProperties;
-
     @Bean
     public CacheManager cacheManager() {
         CaffeineCacheManager cacheManager = new CaffeineCacheManager(PROJECT_STATISTICS_CACHE);
