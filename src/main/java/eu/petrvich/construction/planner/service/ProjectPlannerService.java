@@ -1,9 +1,8 @@
 package eu.petrvich.construction.planner.service;
 
-import eu.petrvich.construction.planner.dto.ProjectStatistics;
-import eu.petrvich.construction.planner.dto.TaskWithIntervals;
+import eu.petrvich.construction.planner.model.ProjectStatistics;
+import eu.petrvich.construction.planner.model.TaskWithIntervals;
 import eu.petrvich.construction.planner.model.Task;
-import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +18,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProjectPlannerService {
 
-    private final TaskDataService taskDataService;
     private final CpmService cpmService;
     private final CrewUtilizationService crewUtilizationService;
 
@@ -30,11 +28,10 @@ public class ProjectPlannerService {
     /**
      * Initializes the project by performing CPM calculation on startup.
      */
-    @PostConstruct
-    public void initializeProject() {
+    public void initializeProject(List<Task> tasks) {
         log.info("Initializing project planner...");
 
-        calculatedTasks = taskDataService.getAllTasks();
+        calculatedTasks = tasks;
         int totalDuration = cpmService.calculateCriticalPath(calculatedTasks);
         int peakCrew = crewUtilizationService.calculatePeakCrewUtilization(calculatedTasks);
         projectStatistics = new ProjectStatistics(totalDuration, peakCrew);

@@ -1,18 +1,159 @@
 ### Test Collection for Construction Planner API
 
-### 1. Get Project Statistics (from preloaded data)
+### Task Registration Endpoints (New - For Dynamic Task Management)
+
+### 1. Register Tasks - Simple Example
+# Registers a new task list, replacing any existing tasks in memory
+POST http://localhost:8080/api/tasks/register
+Content-Type: application/json
+
+[
+  {
+    "taskCode": "A",
+    "operationName": "Foundation",
+    "elementName": "Building A",
+    "duration": 5,
+    "crew": [{"name": "Crew 1", "count": 3}],
+    "equipment": ["Excavator"],
+    "dependencies": []
+  },
+  {
+    "taskCode": "B",
+    "operationName": "Walls",
+    "elementName": "Building A",
+    "duration": 10,
+    "crew": [{"name": "Crew 2", "count": 5}],
+    "equipment": ["Crane"],
+    "dependencies": ["A"]
+  },
+  {
+    "taskCode": "C",
+    "operationName": "Roof",
+    "elementName": "Building A",
+    "duration": 7,
+    "crew": [{"name": "Crew 3", "count": 4}],
+    "equipment": ["Crane", "Scaffolding"],
+    "dependencies": ["B"]
+  }
+]
+
+###
+
+### 2. Register Tasks - Complex Example
+POST http://localhost:8080/api/tasks/register
+Content-Type: application/json
+
+[
+  {
+    "taskCode": "T1",
+    "operationName": "Site Preparation",
+    "elementName": "Site",
+    "duration": 3,
+    "crew": [{"name": "Site Crew", "count": 2}],
+    "equipment": ["Bulldozer"],
+    "dependencies": []
+  },
+  {
+    "taskCode": "T2",
+    "operationName": "Excavation",
+    "elementName": "Foundation",
+    "duration": 5,
+    "crew": [{"name": "Excavation Crew", "count": 4}],
+    "equipment": ["Excavator", "Dump Truck"],
+    "dependencies": ["T1"]
+  },
+  {
+    "taskCode": "T3",
+    "operationName": "Foundation Pouring",
+    "elementName": "Foundation",
+    "duration": 4,
+    "crew": [{"name": "Concrete Crew", "count": 6}],
+    "equipment": ["Concrete Mixer"],
+    "dependencies": ["T2"]
+  },
+  {
+    "taskCode": "T4",
+    "operationName": "Wall Construction",
+    "elementName": "Walls",
+    "duration": 8,
+    "crew": [{"name": "Mason Crew", "count": 5}],
+    "equipment": ["Scaffolding"],
+    "dependencies": ["T3"]
+  },
+  {
+    "taskCode": "T5",
+    "operationName": "Electrical Work",
+    "elementName": "Interior",
+    "duration": 6,
+    "crew": [{"name": "Electrical Crew", "count": 3}],
+    "equipment": [],
+    "dependencies": ["T4"]
+  },
+  {
+    "taskCode": "T6",
+    "operationName": "Plumbing",
+    "elementName": "Interior",
+    "duration": 6,
+    "crew": [{"name": "Plumbing Crew", "count": 3}],
+    "equipment": [],
+    "dependencies": ["T4"]
+  },
+  {
+    "taskCode": "T7",
+    "operationName": "Roof Installation",
+    "elementName": "Roof",
+    "duration": 5,
+    "crew": [{"name": "Roofing Crew", "count": 4}],
+    "equipment": ["Crane"],
+    "dependencies": ["T4"]
+  },
+  {
+    "taskCode": "T8",
+    "operationName": "Final Inspection",
+    "elementName": "Building",
+    "duration": 2,
+    "crew": [{"name": "Inspector", "count": 1}],
+    "equipment": [],
+    "dependencies": ["T5", "T6", "T7"]
+  }
+]
+
+###
+
+### 3. Get All Registered Tasks
+GET http://localhost:8080/api/tasks
+Accept: application/json
+
+###
+
+### 4. Get Task Count
+GET http://localhost:8080/api/tasks/count
+Accept: application/json
+
+###
+
+### 5. Clear All Tasks
+DELETE http://localhost:8080/api/tasks/clear
+
+###
+
+### Project Calculation Endpoints (Using Registered or Preloaded Tasks)
+
+### 6. Get Project Statistics (from registered or preloaded data)
 GET http://localhost:8080/api/project/statistics
 Accept: application/json
 
 ###
 
-### 2. Get Tasks with Intervals (from preloaded data)
+### 7. Get Tasks with Intervals (from registered or preloaded data)
 GET http://localhost:8080/api/project/tasks
 Accept: application/json
 
 ###
 
-### 3. Calculate Project Statistics with Simple Task List
+### Direct Calculation Endpoints (Without Registration)
+
+### 8. Calculate Project Statistics with Simple Task List
 POST http://localhost:8080/api/project/calculate
 Content-Type: application/json
 
@@ -48,7 +189,7 @@ Content-Type: application/json
 
 ###
 
-### 4. Calculate Tasks with Intervals (Complex Example)
+### 9. Calculate Tasks with Intervals (Complex Example)
 POST http://localhost:8080/api/project/calculate/tasks
 Content-Type: application/json
 
@@ -129,7 +270,9 @@ Content-Type: application/json
 
 ###
 
-### 5. Test Error: Invalid Dependency (should return 400)
+### Error Handling Tests
+
+### 10. Test Error: Invalid Dependency (should return 400)
 POST http://localhost:8080/api/project/calculate
 Content-Type: application/json
 
@@ -147,7 +290,7 @@ Content-Type: application/json
 
 ###
 
-### 6. Test Error: Circular Dependency (should return 400)
+### 11. Test Error: Circular Dependency (should return 400)
 POST http://localhost:8080/api/project/calculate
 Content-Type: application/json
 
@@ -174,7 +317,7 @@ Content-Type: application/json
 
 ###
 
-### 7. Test Error: Empty Task List (should return 400)
+### 12. Test Error: Empty Task List (should return 400)
 POST http://localhost:8080/api/project/calculate
 Content-Type: application/json
 
@@ -182,7 +325,23 @@ Content-Type: application/json
 
 ###
 
-### 8. Parallel Tasks Example
+### 13. Test Error: Register Empty Task List (should return 400)
+POST http://localhost:8080/api/tasks/register
+Content-Type: application/json
+
+[]
+
+###
+
+### 14. Test Error: Register Null Task List (should return 400)
+POST http://localhost:8080/api/tasks/register
+Content-Type: application/json
+
+###
+
+### Additional Examples
+
+### 15. Parallel Tasks Example
 POST http://localhost:8080/api/project/calculate/tasks
 Content-Type: application/json
 

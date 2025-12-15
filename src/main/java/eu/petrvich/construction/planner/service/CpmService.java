@@ -136,8 +136,8 @@ public class CpmService {
 
     private void handleUnprocessedTasksInForwardPass(List<Task> tasks, Set<String> processedTasks) {
         List<String> unprocessedTasks = tasks.stream()
-            .filter(t -> !processedTasks.contains(t.getTaskCode()))
             .map(Task::getTaskCode)
+            .filter(taskCode -> !processedTasks.contains(taskCode))
             .toList();
 
         if (!unprocessedTasks.isEmpty()) {
@@ -177,7 +177,7 @@ public class CpmService {
         for (Task task : tasks) {
             if (task.getDependencies() != null) {
                 for (String depCode : task.getDependencies()) {
-                    successorMap.computeIfAbsent(depCode, k -> new ArrayList<>()).add(task);
+                    successorMap.computeIfAbsent(depCode, _ -> new ArrayList<>()).add(task);
                 }
             }
         }
@@ -245,8 +245,8 @@ public class CpmService {
 
     private void handleUnprocessedTasksInBackwardPass(List<Task> tasks, Set<String> processedTasks) {
         List<String> unprocessedTasks = tasks.stream()
-            .filter(t -> !processedTasks.contains(t.getTaskCode()))
             .map(Task::getTaskCode)
+            .filter(taskCode -> !processedTasks.contains(taskCode))
             .toList();
 
         if (!unprocessedTasks.isEmpty()) {

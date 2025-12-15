@@ -1,52 +1,24 @@
 package eu.petrvich.construction.planner.service;
 
 import eu.petrvich.construction.planner.model.Task;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
- * Service for loading and managing task data from JSON file.
+ * Service for loading and managing task data from JSON file or in-memory registration.
+ * Supports both file-based initialization and dynamic task registration via API.
  */
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class TaskDataService {
 
-    @Value("${app.tasks.data-file}")
-    private Resource dataFile;
-
-    private final ObjectMapper objectMapper;
     private List<Task> tasks;
-
-    public TaskDataService(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
-
-    /**
-     * Loads tasks from the JSON file on application startup.
-     */
-    @PostConstruct
-    public void loadTasks() {
-        try {
-            log.info("Loading tasks from: {}", dataFile.getFilename());
-            tasks = objectMapper.readValue(
-                    dataFile.getInputStream(),
-                    new TypeReference<List<Task>>() {}
-            );
-            log.info("Successfully loaded {} tasks", tasks.size());
-        } catch (IOException e) {
-            log.error("Failed to load tasks from file", e);
-            tasks = new ArrayList<>();
-        }
-    }
+    private final ProjectPlannerService projectPlannerService;
 
     /**
      * Returns all tasks.
@@ -54,7 +26,7 @@ public class TaskDataService {
      * @return List of all tasks
      */
     public List<Task> getAllTasks() {
-        return new ArrayList<>(tasks);
+        return tasks;
     }
 
     /**
@@ -64,5 +36,33 @@ public class TaskDataService {
      */
     public int getTaskCount() {
         return tasks.size();
+    }
+
+    /**
+     * Registers a new list of tasks, replacing any existing tasks.
+     * This allows dynamic task registration via API.
+     *
+     * @param newTasks List of tasks to register
+     * @throws IllegalArgumentException if newTasks is null or empty
+     */
+    public void registerTasks(List<Task> newTasks) {
+        if (newTasks == null || newTasks.isEmpty()) {
+            throw new IllegalArgumentException("Task list cannot be null or empty");
+        }
+
+        log.info("Registering {} tasks, replacing existing {} tasks", newTasks.size(), tasks.size());
+        this.tasks = newTasks;
+        this.projectPlannerService.initializeProject(tasks);
+        log.info("Successfully registered {} tasks", tasks.size());
+    }
+
+    /**
+     * Clears all tasks from memory.
+     * This resets the task list to an empty state.
+     */
+    public void clearTasks() {
+        int previousSize = tasks.size();
+        tasks = Collections.emptyList();
+        log.info("Cleared {} tasks from memory", previousSize);
     }
 }

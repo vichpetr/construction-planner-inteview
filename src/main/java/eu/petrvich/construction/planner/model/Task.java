@@ -14,28 +14,27 @@ import java.util.List;
 @AllArgsConstructor
 public class Task {
 
-    @JsonProperty("taskCode")
+    @JsonProperty
     private String taskCode;
 
-    @JsonProperty("operationName")
+    @JsonProperty
     private String operationName;
 
-    @JsonProperty("elementName")
+    @JsonProperty
     private String elementName;
 
-    @JsonProperty("duration")
+    @JsonProperty
     private int duration;
 
-    @JsonProperty("crew")
+    @JsonProperty
     private Crew crew;
 
-    @JsonProperty("equipment")
+    @JsonProperty
     private List<Equipment> equipment = new ArrayList<>();
 
-    @JsonProperty("dependencies")
+    @JsonProperty
     private List<String> dependencies = new ArrayList<>();
 
-    // CPM calculation fields
     @JsonIgnore
     private int earliestStart = 0;
 
@@ -54,11 +53,10 @@ public class Task {
     @JsonIgnore
     private boolean isCritical = false;
 
-    // For API response (stretch goal)
-    @JsonProperty("startInterval")
+    @JsonProperty
     private Integer startInterval;
 
-    @JsonProperty("endInterval")
+    @JsonProperty
     private Integer endInterval;
 
     /**

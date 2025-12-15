@@ -10,9 +10,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Equipment {
 
-    @JsonProperty("name")
+    @JsonProperty
     private String name;
 
-    @JsonProperty("quantity")
+    @JsonProperty
     private int quantity;
 }

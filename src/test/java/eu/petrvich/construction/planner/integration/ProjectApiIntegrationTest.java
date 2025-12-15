@@ -1,8 +1,7 @@
 package eu.petrvich.construction.planner.integration;
 
-import eu.petrvich.construction.planner.config.TestConfig;
-import eu.petrvich.construction.planner.dto.ProjectStatistics;
-import eu.petrvich.construction.planner.dto.TaskWithIntervals;
+import eu.petrvich.construction.planner.model.ProjectStatistics;
+import eu.petrvich.construction.planner.model.TaskWithIntervals;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -10,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -27,7 +25,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
-@Import(TestConfig.class)
 class ProjectApiIntegrationTest {
 
     @Autowired
