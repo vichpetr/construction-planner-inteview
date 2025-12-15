@@ -4,6 +4,7 @@ import com.construction.planner.dto.ProjectStatistics;
 import com.construction.planner.dto.TaskWithIntervals;
 import com.construction.planner.model.Task;
 import jakarta.annotation.PostConstruct;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ public class ProjectPlannerService {
     private final CpmService cpmService;
     private final CrewUtilizationService crewUtilizationService;
 
+    @Getter
     private ProjectStatistics projectStatistics;
     private List<Task> calculatedTasks;
 
@@ -33,16 +35,9 @@ public class ProjectPlannerService {
     public void initializeProject() {
         log.info("Initializing project planner...");
 
-        // Get all tasks
         calculatedTasks = taskDataService.getAllTasks();
-
-        // Calculate critical path
         int totalDuration = cpmService.calculateCriticalPath(calculatedTasks);
-
-        // Calculate peak crew utilization
         int peakCrew = crewUtilizationService.calculatePeakCrewUtilization(calculatedTasks);
-
-        // Store statistics
         projectStatistics = new ProjectStatistics(totalDuration, peakCrew);
 
         log.info("Project initialization complete:");
@@ -52,12 +47,44 @@ public class ProjectPlannerService {
     }
 
     /**
-     * Gets the project statistics (total duration and peak crew utilization).
+     * Calculates project statistics for provided tasks.
      *
-     * @return Project statistics
+     * @param tasks List of tasks to calculate
+     * @return Project statistics with duration and peak crew
      */
-    public ProjectStatistics getProjectStatistics() {
-        return projectStatistics;
+    public ProjectStatistics calculateProject(List<Task> tasks) {
+        if (tasks == null || tasks.isEmpty()) {
+            throw new IllegalArgumentException("Task list cannot be null or empty");
+        }
+
+        log.info("Calculating project for {} tasks", tasks.size());
+
+        int totalDuration = cpmService.calculateCriticalPath(tasks);
+        int peakCrew = crewUtilizationService.calculatePeakCrewUtilization(tasks);
+
+        log.info("Project calculation complete: duration={}, peakCrew={}", totalDuration, peakCrew);
+
+        return new ProjectStatistics(totalDuration, peakCrew);
+    }
+
+    /**
+     * Calculates project and returns tasks with intervals.
+     *
+     * @param tasks List of tasks to calculate
+     * @return List of tasks with calculated intervals
+     */
+    public List<TaskWithIntervals> calculateTasksWithIntervals(List<Task> tasks) {
+        if (tasks == null || tasks.isEmpty()) {
+            throw new IllegalArgumentException("Task list cannot be null or empty");
+        }
+
+        log.info("Calculating tasks with intervals for {} tasks", tasks.size());
+
+        cpmService.calculateCriticalPath(tasks);
+
+        return tasks.stream()
+                .map(this::convertToTaskWithIntervals)
+                .toList();
     }
 
     /**
@@ -68,12 +95,9 @@ public class ProjectPlannerService {
     public List<TaskWithIntervals> getTasksWithIntervals() {
         return calculatedTasks.stream()
                 .map(this::convertToTaskWithIntervals)
-                .collect(Collectors.toList());
+                .toList();
     }
 
-    /**
-     * Converts a Task to TaskWithIntervals DTO.
-     */
     private TaskWithIntervals convertToTaskWithIntervals(Task task) {
         return TaskWithIntervals.builder()
                 .taskCode(task.getTaskCode())

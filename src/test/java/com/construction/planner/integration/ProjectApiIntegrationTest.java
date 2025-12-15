@@ -1,5 +1,6 @@
 package com.construction.planner.integration;
 
+import com.construction.planner.config.TestConfig;
 import com.construction.planner.dto.ProjectStatistics;
 import com.construction.planner.dto.TaskWithIntervals;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -7,8 +8,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -23,8 +25,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Integration tests for the Project API endpoints.
  * Tests the full application stack including data loading, CPM calculation, and API responses.
  */
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
+@Import(TestConfig.class)
 class ProjectApiIntegrationTest {
 
     @Autowired

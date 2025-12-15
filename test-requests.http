@@ -1,0 +1,237 @@
+### Test Collection for Construction Planner API
+
+### 1. Get Project Statistics (from preloaded data)
+GET http://localhost:8080/api/project/statistics
+Accept: application/json
+
+###
+
+### 2. Get Tasks with Intervals (from preloaded data)
+GET http://localhost:8080/api/project/tasks
+Accept: application/json
+
+###
+
+### 3. Calculate Project Statistics with Simple Task List
+POST http://localhost:8080/api/project/calculate
+Content-Type: application/json
+
+[
+  {
+    "taskCode": "A",
+    "operationName": "Foundation",
+    "elementName": "Building A",
+    "duration": 5,
+    "crew": [{"name": "Crew 1", "count": 3}],
+    "equipment": ["Excavator"],
+    "dependencies": []
+  },
+  {
+    "taskCode": "B",
+    "operationName": "Walls",
+    "elementName": "Building A",
+    "duration": 10,
+    "crew": [{"name": "Crew 2", "count": 5}],
+    "equipment": ["Crane"],
+    "dependencies": ["A"]
+  },
+  {
+    "taskCode": "C",
+    "operationName": "Roof",
+    "elementName": "Building A",
+    "duration": 7,
+    "crew": [{"name": "Crew 3", "count": 4}],
+    "equipment": ["Crane", "Scaffolding"],
+    "dependencies": ["B"]
+  }
+]
+
+###
+
+### 4. Calculate Tasks with Intervals (Complex Example)
+POST http://localhost:8080/api/project/calculate/tasks
+Content-Type: application/json
+
+[
+  {
+    "taskCode": "T1",
+    "operationName": "Site Preparation",
+    "elementName": "Site",
+    "duration": 3,
+    "crew": [{"name": "Site Crew", "count": 2}],
+    "equipment": ["Bulldozer"],
+    "dependencies": []
+  },
+  {
+    "taskCode": "T2",
+    "operationName": "Excavation",
+    "elementName": "Foundation",
+    "duration": 5,
+    "crew": [{"name": "Excavation Crew", "count": 4}],
+    "equipment": ["Excavator", "Dump Truck"],
+    "dependencies": ["T1"]
+  },
+  {
+    "taskCode": "T3",
+    "operationName": "Foundation Pouring",
+    "elementName": "Foundation",
+    "duration": 4,
+    "crew": [{"name": "Concrete Crew", "count": 6}],
+    "equipment": ["Concrete Mixer"],
+    "dependencies": ["T2"]
+  },
+  {
+    "taskCode": "T4",
+    "operationName": "Wall Construction",
+    "elementName": "Walls",
+    "duration": 8,
+    "crew": [{"name": "Mason Crew", "count": 5}],
+    "equipment": ["Scaffolding"],
+    "dependencies": ["T3"]
+  },
+  {
+    "taskCode": "T5",
+    "operationName": "Electrical Work",
+    "elementName": "Interior",
+    "duration": 6,
+    "crew": [{"name": "Electrical Crew", "count": 3}],
+    "equipment": [],
+    "dependencies": ["T4"]
+  },
+  {
+    "taskCode": "T6",
+    "operationName": "Plumbing",
+    "elementName": "Interior",
+    "duration": 6,
+    "crew": [{"name": "Plumbing Crew", "count": 3}],
+    "equipment": [],
+    "dependencies": ["T4"]
+  },
+  {
+    "taskCode": "T7",
+    "operationName": "Roof Installation",
+    "elementName": "Roof",
+    "duration": 5,
+    "crew": [{"name": "Roofing Crew", "count": 4}],
+    "equipment": ["Crane"],
+    "dependencies": ["T4"]
+  },
+  {
+    "taskCode": "T8",
+    "operationName": "Final Inspection",
+    "elementName": "Building",
+    "duration": 2,
+    "crew": [{"name": "Inspector", "count": 1}],
+    "equipment": [],
+    "dependencies": ["T5", "T6", "T7"]
+  }
+]
+
+###
+
+### 5. Test Error: Invalid Dependency (should return 400)
+POST http://localhost:8080/api/project/calculate
+Content-Type: application/json
+
+[
+  {
+    "taskCode": "A",
+    "operationName": "Task A",
+    "elementName": "Element A",
+    "duration": 5,
+    "crew": [],
+    "equipment": [],
+    "dependencies": ["NONEXISTENT"]
+  }
+]
+
+###
+
+### 6. Test Error: Circular Dependency (should return 400)
+POST http://localhost:8080/api/project/calculate
+Content-Type: application/json
+
+[
+  {
+    "taskCode": "A",
+    "operationName": "Task A",
+    "elementName": "Element A",
+    "duration": 5,
+    "crew": [],
+    "equipment": [],
+    "dependencies": ["B"]
+  },
+  {
+    "taskCode": "B",
+    "operationName": "Task B",
+    "elementName": "Element B",
+    "duration": 3,
+    "crew": [],
+    "equipment": [],
+    "dependencies": ["A"]
+  }
+]
+
+###
+
+### 7. Test Error: Empty Task List (should return 400)
+POST http://localhost:8080/api/project/calculate
+Content-Type: application/json
+
+[]
+
+###
+
+### 8. Parallel Tasks Example
+POST http://localhost:8080/api/project/calculate/tasks
+Content-Type: application/json
+
+[
+  {
+    "taskCode": "START",
+    "operationName": "Project Start",
+    "elementName": "Project",
+    "duration": 0,
+    "crew": [],
+    "equipment": [],
+    "dependencies": []
+  },
+  {
+    "taskCode": "PARALLEL_A",
+    "operationName": "Parallel Task A",
+    "elementName": "Building A",
+    "duration": 10,
+    "crew": [{"name": "Crew A", "count": 5}],
+    "equipment": [],
+    "dependencies": ["START"]
+  },
+  {
+    "taskCode": "PARALLEL_B",
+    "operationName": "Parallel Task B",
+    "elementName": "Building B",
+    "duration": 8,
+    "crew": [{"name": "Crew B", "count": 5}],
+    "equipment": [],
+    "dependencies": ["START"]
+  },
+  {
+    "taskCode": "PARALLEL_C",
+    "operationName": "Parallel Task C",
+    "elementName": "Building C",
+    "duration": 12,
+    "crew": [{"name": "Crew C", "count": 5}],
+    "equipment": [],
+    "dependencies": ["START"]
+  },
+  {
+    "taskCode": "END",
+    "operationName": "Project Completion",
+    "elementName": "Project",
+    "duration": 0,
+    "crew": [],
+    "equipment": [],
+    "dependencies": ["PARALLEL_A", "PARALLEL_B", "PARALLEL_C"]
+  }
+]
+
+###

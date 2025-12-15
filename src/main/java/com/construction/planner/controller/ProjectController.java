@@ -2,13 +2,12 @@ package com.construction.planner.controller;
 
 import com.construction.planner.dto.ProjectStatistics;
 import com.construction.planner.dto.TaskWithIntervals;
+import com.construction.planner.model.Task;
 import com.construction.planner.service.ProjectPlannerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -24,11 +23,7 @@ public class ProjectController {
     private final ProjectPlannerService projectPlannerService;
 
     /**
-     * GET /api/project/statistics
-     *
-     * Returns project statistics including:
-     * - Total project duration (in time units)
-     * - Peak crew utilization (maximum concurrent crew members)
+     * Returns project statistics including total duration and peak crew utilization.
      *
      * @return Project statistics
      */
@@ -40,10 +35,7 @@ public class ProjectController {
     }
 
     /**
-     * GET /api/project/tasks
-     *
      * Returns all tasks with calculated start and end intervals.
-     * This is the stretch goal endpoint that includes scheduling information for each task.
      *
      * @return List of tasks with intervals
      */
@@ -52,5 +44,31 @@ public class ProjectController {
         log.info("GET /api/project/tasks");
         List<TaskWithIntervals> tasks = projectPlannerService.getTasksWithIntervals();
         return ResponseEntity.ok(tasks);
+    }
+
+    /**
+     * Calculates project statistics for provided tasks.
+     *
+     * @param tasks List of tasks to calculate
+     * @return Project statistics including duration and peak crew
+     */
+    @PostMapping("/calculate")
+    public ResponseEntity<ProjectStatistics> calculateProject(@RequestBody List<Task> tasks) {
+        log.info("POST /api/project/calculate with {} tasks", tasks != null ? tasks.size() : 0);
+        ProjectStatistics statistics = projectPlannerService.calculateProject(tasks);
+        return ResponseEntity.ok(statistics);
+    }
+
+    /**
+     * Calculates project and returns tasks with intervals.
+     *
+     * @param tasks List of tasks to calculate
+     * @return List of tasks with calculated intervals
+     */
+    @PostMapping("/calculate/tasks")
+    public ResponseEntity<List<TaskWithIntervals>> calculateTasksWithIntervals(@RequestBody List<Task> tasks) {
+        log.info("POST /api/project/calculate/tasks with {} tasks", tasks != null ? tasks.size() : 0);
+        List<TaskWithIntervals> tasksWithIntervals = projectPlannerService.calculateTasksWithIntervals(tasks);
+        return ResponseEntity.ok(tasksWithIntervals);
     }
 }

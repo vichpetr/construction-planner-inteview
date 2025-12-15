@@ -6,7 +6,15 @@
       "Bash(gradle wrapper:*)",
       "Bash(curl:*)",
       "Bash(chmod:*)",
-      "Bash(./gradlew build:*)"
+      "Bash(./gradlew build:*)",
+      "Bash(./gradlew test:*)",
+      "Bash(./gradlew bootRun)",
+      "Bash(python3:*)",
+      "Bash(./gradlew wrapper:*)",
+      "Bash(./gradlew clean build:*)",
+      "Bash(./gradlew dependencies:*)",
+      "Bash(./gradlew clean:*)",
+      "Bash(rm:*)"
     ]
   }
 }

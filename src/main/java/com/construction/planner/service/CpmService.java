@@ -1,5 +1,7 @@
 package com.construction.planner.service;
 
+import com.construction.planner.exception.CircularDependencyException;
+import com.construction.planner.exception.InvalidTaskDependencyException;
 import com.construction.planner.model.Task;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,23 +33,13 @@ public class CpmService {
             return 0;
         }
 
-        // Create a map for quick task lookup
         Map<String, Task> taskMap = tasks.stream()
                 .collect(Collectors.toMap(Task::getTaskCode, task -> task));
 
-        // Validate dependencies
         validateDependencies(tasks, taskMap);
-
-        // Perform forward pass to calculate earliest start and finish times
         int projectDuration = performForwardPass(tasks, taskMap);
-
-        // Perform backward pass to calculate latest start and finish times
         performBackwardPass(tasks, taskMap, projectDuration);
-
-        // Calculate slack and identify critical tasks
         calculateSlackAndCriticalPath(tasks);
-
-        // Set start and end intervals for API response
         setIntervals(tasks);
 
         log.info("CPM calculation complete. Project duration: {} time units", projectDuration);
@@ -57,33 +49,43 @@ public class CpmService {
         return projectDuration;
     }
 
-    /**
-     * Validates that all task dependencies reference existing tasks.
-     */
     private void validateDependencies(List<Task> tasks, Map<String, Task> taskMap) {
+        List<String> invalidDependencies = new ArrayList<>();
+
         for (Task task : tasks) {
             if (task.getDependencies() != null) {
                 for (String depCode : task.getDependencies()) {
                     if (!taskMap.containsKey(depCode)) {
-                        log.warn("Task {} has dependency on non-existent task {}",
-                                task.getTaskCode(), depCode);
+                        invalidDependencies.add(
+                            String.format("Task '%s' depends on non-existent task '%s'",
+                                task.getTaskCode(), depCode)
+                        );
                     }
                 }
             }
         }
+
+        if (!invalidDependencies.isEmpty()) {
+            String errorMsg = "Invalid task dependencies detected:\n" +
+                String.join("\n", invalidDependencies);
+            log.error(errorMsg);
+            throw new InvalidTaskDependencyException(errorMsg);
+        }
     }
 
-    /**
-     * Forward pass: Calculate Earliest Start (ES) and Earliest Finish (EF) for each task.
-     * ES = max(EF of all predecessors)
-     * EF = ES + duration
-     */
     private int performForwardPass(List<Task> tasks, Map<String, Task> taskMap) {
-        // Find tasks with no dependencies (starting tasks)
         Set<String> processedTasks = new HashSet<>();
         Queue<Task> queue = new LinkedList<>();
+        Map<String, List<Task>> successorMap = buildSuccessorMap(tasks);
 
-        // Initialize tasks with no dependencies
+        initializeStartingTasks(tasks, queue, processedTasks);
+        processForwardQueue(taskMap, successorMap, queue, processedTasks);
+        handleUnprocessedTasksInForwardPass(tasks, processedTasks);
+
+        return calculateProjectDuration(tasks);
+    }
+
+    private void initializeStartingTasks(List<Task> tasks, Queue<Task> queue, Set<String> processedTasks) {
         for (Task task : tasks) {
             if (!task.hasDependencies()) {
                 task.setEarliestStart(0);
@@ -92,62 +94,82 @@ public class CpmService {
                 processedTasks.add(task.getTaskCode());
             }
         }
+    }
 
-        // Process tasks in dependency order
+    private void processForwardQueue(Map<String, Task> taskMap, Map<String, List<Task>> successorMap,
+                                     Queue<Task> queue, Set<String> processedTasks) {
         while (!queue.isEmpty()) {
             Task currentTask = queue.poll();
+            processTaskSuccessors(taskMap, successorMap, currentTask, queue, processedTasks);
+        }
+    }
 
-            // Find all tasks that depend on this task
-            for (Task task : tasks) {
-                if (task.getDependencies() != null &&
-                    task.getDependencies().contains(currentTask.getTaskCode())) {
+    private void processTaskSuccessors(Map<String, Task> taskMap, Map<String, List<Task>> successorMap,
+                                       Task currentTask, Queue<Task> queue, Set<String> processedTasks) {
+        List<Task> successors = successorMap.getOrDefault(currentTask.getTaskCode(), Collections.emptyList());
 
-                    // Check if all dependencies are processed
-                    boolean allDependenciesProcessed = task.getDependencies().stream()
-                            .allMatch(processedTasks::contains);
-
-                    if (allDependenciesProcessed && !processedTasks.contains(task.getTaskCode())) {
-                        // Calculate ES as max EF of all dependencies
-                        int maxEF = task.getDependencies().stream()
-                                .map(taskMap::get)
-                                .filter(Objects::nonNull)
-                                .mapToInt(Task::getEarliestFinish)
-                                .max()
-                                .orElse(0);
-
-                        task.setEarliestStart(maxEF);
-                        task.setEarliestFinish(maxEF + task.getDuration());
-                        queue.offer(task);
-                        processedTasks.add(task.getTaskCode());
-                    }
-                }
+        for (Task successor : successors) {
+            if (canProcessTask(successor, processedTasks)) {
+                setEarliestTimes(successor, taskMap);
+                queue.offer(successor);
+                processedTasks.add(successor.getTaskCode());
             }
         }
+    }
 
-        // Handle any remaining tasks (circular dependencies or orphaned tasks)
-        for (Task task : tasks) {
-            if (!processedTasks.contains(task.getTaskCode())) {
-                log.warn("Task {} was not processed in forward pass - possible circular dependency",
-                        task.getTaskCode());
-                task.setEarliestStart(0);
-                task.setEarliestFinish(task.getDuration());
-            }
+    private boolean canProcessTask(Task task, Set<String> processedTasks) {
+        return processedTasks.containsAll(task.getDependencies()) &&
+               !processedTasks.contains(task.getTaskCode());
+    }
+
+    private void setEarliestTimes(Task task, Map<String, Task> taskMap) {
+        int maxEF = task.getDependencies().stream()
+                .map(taskMap::get)
+                .filter(Objects::nonNull)
+                .mapToInt(Task::getEarliestFinish)
+                .max()
+                .orElse(0);
+
+        task.setEarliestStart(maxEF);
+        task.setEarliestFinish(maxEF + task.getDuration());
+    }
+
+    private void handleUnprocessedTasksInForwardPass(List<Task> tasks, Set<String> processedTasks) {
+        List<String> unprocessedTasks = tasks.stream()
+            .filter(t -> !processedTasks.contains(t.getTaskCode()))
+            .map(Task::getTaskCode)
+            .toList();
+
+        if (!unprocessedTasks.isEmpty()) {
+            String errorMsg = String.format(
+                "Unable to calculate project schedule due to circular dependencies or invalid task relationships. " +
+                "The following tasks could not be scheduled: %s. " +
+                "Please review the task dependencies and ensure there are no circular references.",
+                String.join(", ", unprocessedTasks)
+            );
+            log.error(errorMsg);
+            throw new CircularDependencyException(errorMsg);
         }
+    }
 
-        // Project duration is the maximum EF across all tasks
+    private int calculateProjectDuration(List<Task> tasks) {
         return tasks.stream()
                 .mapToInt(Task::getEarliestFinish)
                 .max()
                 .orElse(0);
     }
 
-    /**
-     * Backward pass: Calculate Latest Start (LS) and Latest Finish (LF) for each task.
-     * LF = min(LS of all successors)
-     * LS = LF - duration
-     */
     private void performBackwardPass(List<Task> tasks, Map<String, Task> taskMap, int projectDuration) {
-        // Build successor map (reverse of dependencies)
+        Map<String, List<Task>> successorMap = buildSuccessorMap(tasks);
+        Set<String> processedTasks = new HashSet<>();
+        Queue<Task> queue = new LinkedList<>();
+
+        initializeEndingTasks(tasks, successorMap, queue, processedTasks, projectDuration);
+        processBackwardQueue(taskMap, successorMap, queue, processedTasks, projectDuration);
+        handleUnprocessedTasksInBackwardPass(tasks, processedTasks);
+    }
+
+    private Map<String, List<Task>> buildSuccessorMap(List<Task> tasks) {
         Map<String, List<Task>> successorMap = new HashMap<>();
         for (Task task : tasks) {
             successorMap.put(task.getTaskCode(), new ArrayList<>());
@@ -159,11 +181,11 @@ public class CpmService {
                 }
             }
         }
+        return successorMap;
+    }
 
-        // Find tasks with no successors (ending tasks)
-        Set<String> processedTasks = new HashSet<>();
-        Queue<Task> queue = new LinkedList<>();
-
+    private void initializeEndingTasks(List<Task> tasks, Map<String, List<Task>> successorMap,
+                                      Queue<Task> queue, Set<String> processedTasks, int projectDuration) {
         for (Task task : tasks) {
             if (successorMap.get(task.getTaskCode()).isEmpty()) {
                 task.setLatestFinish(projectDuration);
@@ -172,54 +194,72 @@ public class CpmService {
                 processedTasks.add(task.getTaskCode());
             }
         }
+    }
 
-        // Process tasks in reverse dependency order
+    private void processBackwardQueue(Map<String, Task> taskMap, Map<String, List<Task>> successorMap,
+                                     Queue<Task> queue, Set<String> processedTasks, int projectDuration) {
         while (!queue.isEmpty()) {
             Task currentTask = queue.poll();
-
-            // Process all tasks that this task depends on
-            if (currentTask.getDependencies() != null) {
-                for (String depCode : currentTask.getDependencies()) {
-                    Task depTask = taskMap.get(depCode);
-                    if (depTask != null && !processedTasks.contains(depCode)) {
-
-                        // Check if all successors are processed
-                        List<Task> successors = successorMap.get(depCode);
-                        boolean allSuccessorsProcessed = successors.stream()
-                                .allMatch(s -> processedTasks.contains(s.getTaskCode()));
-
-                        if (allSuccessorsProcessed) {
-                            // Calculate LF as min LS of all successors
-                            int minLS = successors.stream()
-                                    .mapToInt(Task::getLatestStart)
-                                    .min()
-                                    .orElse(projectDuration);
-
-                            depTask.setLatestFinish(minLS);
-                            depTask.setLatestStart(minLS - depTask.getDuration());
-                            queue.offer(depTask);
-                            processedTasks.add(depCode);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Handle any remaining tasks
-        for (Task task : tasks) {
-            if (!processedTasks.contains(task.getTaskCode())) {
-                log.warn("Task {} was not processed in backward pass", task.getTaskCode());
-                task.setLatestFinish(task.getEarliestFinish());
-                task.setLatestStart(task.getEarliestStart());
-            }
+            processTaskPredecessors(currentTask, taskMap, successorMap, queue, processedTasks, projectDuration);
         }
     }
 
-    /**
-     * Calculate slack (float) for each task and identify critical path.
-     * Slack = LS - ES (or LF - EF)
-     * Critical tasks have slack = 0
-     */
+    private void processTaskPredecessors(Task currentTask, Map<String, Task> taskMap,
+                                        Map<String, List<Task>> successorMap, Queue<Task> queue,
+                                        Set<String> processedTasks, int projectDuration) {
+        if (currentTask.getDependencies() == null) return;
+
+        for (String depCode : currentTask.getDependencies()) {
+            processPredecessor(depCode, taskMap, successorMap, queue, processedTasks, projectDuration);
+        }
+    }
+
+    private void processPredecessor(String depCode, Map<String, Task> taskMap,
+                                    Map<String, List<Task>> successorMap, Queue<Task> queue,
+                                    Set<String> processedTasks, int projectDuration) {
+        Task depTask = taskMap.get(depCode);
+        if (depTask == null || processedTasks.contains(depCode)) return;
+
+        List<Task> successors = successorMap.get(depCode);
+        if (allSuccessorsProcessed(successors, processedTasks)) {
+            setLatestTimes(depTask, successors, projectDuration);
+            queue.offer(depTask);
+            processedTasks.add(depCode);
+        }
+    }
+
+    private boolean allSuccessorsProcessed(List<Task> successors, Set<String> processedTasks) {
+        return successors.stream()
+                .allMatch(s -> processedTasks.contains(s.getTaskCode()));
+    }
+
+    private void setLatestTimes(Task task, List<Task> successors, int projectDuration) {
+        int minLS = successors.stream()
+                .mapToInt(Task::getLatestStart)
+                .min()
+                .orElse(projectDuration);
+
+        task.setLatestFinish(minLS);
+        task.setLatestStart(minLS - task.getDuration());
+    }
+
+    private void handleUnprocessedTasksInBackwardPass(List<Task> tasks, Set<String> processedTasks) {
+        List<String> unprocessedTasks = tasks.stream()
+            .filter(t -> !processedTasks.contains(t.getTaskCode()))
+            .map(Task::getTaskCode)
+            .toList();
+
+        if (!unprocessedTasks.isEmpty()) {
+            String errorMsg = String.format(
+                "Backward pass failed - the following tasks were not processed: %s. " +
+                "This indicates a structural problem in the task graph.",
+                String.join(", ", unprocessedTasks)
+            );
+            log.error(errorMsg);
+            throw new CircularDependencyException(errorMsg);
+        }
+    }
+
     private void calculateSlackAndCriticalPath(List<Task> tasks) {
         for (Task task : tasks) {
             int slack = task.getLatestStart() - task.getEarliestStart();
@@ -228,10 +268,6 @@ public class CpmService {
         }
     }
 
-    /**
-     * Set start and end intervals for API response.
-     * Using earliest start times for the schedule.
-     */
     private void setIntervals(List<Task> tasks) {
         for (Task task : tasks) {
             task.setStartInterval(task.getEarliestStart());
