@@ -1,52 +1,86 @@
 package eu.petrvich.construction.planner.integration;
 
-import eu.petrvich.construction.planner.model.ProjectStatistics;
-import eu.petrvich.construction.planner.model.TaskWithIntervals;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.petrvich.construction.planner.model.ProjectStatistics;
+import eu.petrvich.construction.planner.model.Task;
+import eu.petrvich.construction.planner.model.TaskWithIntervals;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
+import java.io.IOException;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration tests for the Project API endpoints.
- * Tests the full application stack including data loading, CPM calculation, and API responses.
+ * Tests the full application stack including task registration, CPM calculation, and API responses.
+ * Each test loads tasks from tasks.json before execution to ensure test isolation.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@AutoConfigureMockMvc
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class ProjectApiIntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @LocalServerPort
+    private int port;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private WebTestClient webTestClient;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @BeforeEach
+    void setUp() throws IOException {
+        this.webTestClient = WebTestClient.bindToServer()
+                .baseUrl("http://localhost:" + port)
+                .build();
+
+        // Load tasks from tasks.json and register them
+        ClassPathResource tasksResource = new ClassPathResource("tasks.json");
+        List<Task> tasks = objectMapper.readValue(
+                tasksResource.getInputStream(),
+                new TypeReference<List<Task>>() {}
+        );
+
+        // Register tasks via POST /api/tasks
+        webTestClient.post()
+                .uri("/api/tasks")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(tasks)
+                .exchange()
+                .expectStatus().isOk();
+    }
+
+    @AfterEach
+    void tearDown() {
+        // Clear tasks after each test for isolation
+        webTestClient.delete()
+                .uri("/api/tasks")
+                .exchange()
+                .expectStatus().isOk();
+    }
 
     @Test
     @DisplayName("GET /api/project/statistics should return valid project statistics")
-    void testGetProjectStatistics() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/project/statistics")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.totalProjectDuration").isNumber())
-                .andExpect(jsonPath("$.peakCrewUtilization").isNumber())
-                .andReturn();
+    void testGetProjectStatistics() {
+        ProjectStatistics statistics = webTestClient.get()
+                .uri("/api/project/statistics")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ProjectStatistics.class)
+                .returnResult()
+                .getResponseBody();
 
-        // Parse the response
-        String responseBody = result.getResponse().getContentAsString();
-        ProjectStatistics statistics = objectMapper.readValue(responseBody, ProjectStatistics.class);
+        assertNotNull(statistics);
 
         // Verify the statistics are reasonable
         assertTrue(statistics.getTotalProjectDuration() > 0,
@@ -62,20 +96,17 @@ class ProjectApiIntegrationTest {
 
     @Test
     @DisplayName("GET /api/project/tasks should return all tasks with intervals")
-    void testGetTasksWithIntervals() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/project/tasks")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$").isArray())
-                .andReturn();
+    void testGetTasksWithIntervals() {
+        List<TaskWithIntervals> tasks = webTestClient.get()
+                .uri("/api/project/tasks")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(TaskWithIntervals.class)
+                .returnResult()
+                .getResponseBody();
 
-        // Parse the response
-        String responseBody = result.getResponse().getContentAsString();
-        List<TaskWithIntervals> tasks = objectMapper.readValue(
-                responseBody,
-                new TypeReference<List<TaskWithIntervals>>() {}
-        );
+        assertNotNull(tasks);
 
         // Verify we have tasks
         assertFalse(tasks.isEmpty(), "Tasks list should not be empty");
@@ -98,16 +129,17 @@ class ProjectApiIntegrationTest {
 
     @Test
     @DisplayName("GET /api/project/tasks should have tasks with valid dependencies")
-    void testTaskDependencies() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/project/tasks"))
-                .andExpect(status().isOk())
-                .andReturn();
+    void testTaskDependencies() {
+        List<TaskWithIntervals> tasks = webTestClient.get()
+                .uri("/api/project/tasks")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(TaskWithIntervals.class)
+                .returnResult()
+                .getResponseBody();
 
-        String responseBody = result.getResponse().getContentAsString();
-        List<TaskWithIntervals> tasks = objectMapper.readValue(
-                responseBody,
-                new TypeReference<List<TaskWithIntervals>>() {}
-        );
+        assertNotNull(tasks);
 
         // Create a map of tasks for dependency validation
         var taskMap = tasks.stream()
@@ -137,22 +169,28 @@ class ProjectApiIntegrationTest {
 
     @Test
     @DisplayName("GET /api/project/statistics should be consistent across multiple calls")
-    void testStatisticsConsistency() throws Exception {
+    void testStatisticsConsistency() {
         // Call the endpoint multiple times
-        MvcResult result1 = mockMvc.perform(get("/api/project/statistics"))
-                .andExpect(status().isOk())
-                .andReturn();
+        ProjectStatistics stats1 = webTestClient.get()
+                .uri("/api/project/statistics")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ProjectStatistics.class)
+                .returnResult()
+                .getResponseBody();
 
-        MvcResult result2 = mockMvc.perform(get("/api/project/statistics"))
-                .andExpect(status().isOk())
-                .andReturn();
+        ProjectStatistics stats2 = webTestClient.get()
+                .uri("/api/project/statistics")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ProjectStatistics.class)
+                .returnResult()
+                .getResponseBody();
 
-        // Parse both responses
-        String response1 = result1.getResponse().getContentAsString();
-        String response2 = result2.getResponse().getContentAsString();
-
-        ProjectStatistics stats1 = objectMapper.readValue(response1, ProjectStatistics.class);
-        ProjectStatistics stats2 = objectMapper.readValue(response2, ProjectStatistics.class);
+        assertNotNull(stats1);
+        assertNotNull(stats2);
 
         // They should be identical
         assertEquals(stats1.getTotalProjectDuration(), stats2.getTotalProjectDuration(),
@@ -163,16 +201,17 @@ class ProjectApiIntegrationTest {
 
     @Test
     @DisplayName("Tasks should have valid crew assignments")
-    void testTaskCrewAssignments() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/project/tasks"))
-                .andExpect(status().isOk())
-                .andReturn();
+    void testTaskCrewAssignments() {
+        List<TaskWithIntervals> tasks = webTestClient.get()
+                .uri("/api/project/tasks")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(TaskWithIntervals.class)
+                .returnResult()
+                .getResponseBody();
 
-        String responseBody = result.getResponse().getContentAsString();
-        List<TaskWithIntervals> tasks = objectMapper.readValue(
-                responseBody,
-                new TypeReference<List<TaskWithIntervals>>() {}
-        );
+        assertNotNull(tasks);
 
         // Count tasks with and without crew
         long tasksWithCrew = tasks.stream()
@@ -197,26 +236,30 @@ class ProjectApiIntegrationTest {
 
     @Test
     @DisplayName("GET /api/project/tasks should return tasks in valid time range")
-    void testTaskTimeRange() throws Exception {
+    void testTaskTimeRange() {
         // First get the project statistics to know the total duration
-        MvcResult statsResult = mockMvc.perform(get("/api/project/statistics"))
-                .andExpect(status().isOk())
-                .andReturn();
+        ProjectStatistics statistics = webTestClient.get()
+                .uri("/api/project/statistics")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(ProjectStatistics.class)
+                .returnResult()
+                .getResponseBody();
 
-        ProjectStatistics statistics = objectMapper.readValue(
-                statsResult.getResponse().getContentAsString(),
-                ProjectStatistics.class
-        );
+        assertNotNull(statistics);
 
         // Get all tasks
-        MvcResult tasksResult = mockMvc.perform(get("/api/project/tasks"))
-                .andExpect(status().isOk())
-                .andReturn();
+        List<TaskWithIntervals> tasks = webTestClient.get()
+                .uri("/api/project/tasks")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(TaskWithIntervals.class)
+                .returnResult()
+                .getResponseBody();
 
-        List<TaskWithIntervals> tasks = objectMapper.readValue(
-                tasksResult.getResponse().getContentAsString(),
-                new TypeReference<List<TaskWithIntervals>>() {}
-        );
+        assertNotNull(tasks);
 
         // Verify all tasks fit within the project duration
         for (TaskWithIntervals task : tasks) {

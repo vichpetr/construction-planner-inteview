@@ -1,5 +1,7 @@
 package eu.petrvich.construction.planner.service;
 
+import eu.petrvich.construction.planner.exception.CircularDependencyException;
+import eu.petrvich.construction.planner.exception.InvalidTaskDependencyException;
 import eu.petrvich.construction.planner.model.Task;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -9,7 +11,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CpmServiceTest {
 
@@ -183,6 +188,131 @@ class CpmServiceTest {
         // Task E should depend on max finish of C and D
         assertEquals(7, taskE.getEarliestStart());
         assertEquals(9, taskE.getEarliestFinish());
+    }
+
+    @Test
+    @DisplayName("Should throw InvalidTaskDependencyException when task depends on non-existent task")
+    void testInvalidDependency() {
+        Task task = createTask("T1", 10, List.of("NONEXISTENT"));
+        List<Task> tasks = List.of(task);
+
+        InvalidTaskDependencyException exception = assertThrows(
+                InvalidTaskDependencyException.class,
+                () -> cpmService.calculateCriticalPath(tasks),
+                "Should throw InvalidTaskDependencyException for non-existent dependency"
+        );
+
+        assertTrue(exception.getMessage().contains("T1"),
+                "Exception message should mention the task code");
+        assertTrue(exception.getMessage().contains("NONEXISTENT"),
+                "Exception message should mention the non-existent dependency");
+    }
+
+    @Test
+    @DisplayName("Should throw InvalidTaskDependencyException for multiple invalid dependencies")
+    void testMultipleInvalidDependencies() {
+        Task task1 = createTask("T1", 10, List.of("INVALID1"));
+        Task task2 = createTask("T2", 5, List.of("INVALID2", "INVALID3"));
+        List<Task> tasks = List.of(task1, task2);
+
+        InvalidTaskDependencyException exception = assertThrows(
+                InvalidTaskDependencyException.class,
+                () -> cpmService.calculateCriticalPath(tasks),
+                "Should throw InvalidTaskDependencyException for multiple invalid dependencies"
+        );
+
+        assertTrue(exception.getMessage().contains("INVALID1"),
+                "Exception should mention first invalid dependency");
+        assertTrue(exception.getMessage().contains("INVALID2"),
+                "Exception should mention second invalid dependency");
+        assertTrue(exception.getMessage().contains("INVALID3"),
+                "Exception should mention third invalid dependency");
+    }
+
+    @Test
+    @DisplayName("Should throw CircularDependencyException for simple circular dependency")
+    void testSimpleCircularDependency() {
+        Task task1 = createTask("T1", 10, List.of("T2"));
+        Task task2 = createTask("T2", 5, List.of("T1"));
+        List<Task> tasks = List.of(task1, task2);
+
+        CircularDependencyException exception = assertThrows(
+                CircularDependencyException.class,
+                () -> cpmService.calculateCriticalPath(tasks),
+                "Should throw CircularDependencyException for circular dependency"
+        );
+
+        assertTrue(exception.getMessage().toLowerCase().contains("circular"),
+                "Exception message should mention circular dependencies");
+    }
+
+    @Test
+    @DisplayName("Should throw CircularDependencyException for complex circular dependency chain")
+    void testComplexCircularDependency() {
+        Task task1 = createTask("T1", 10, List.of("T2"));
+        Task task2 = createTask("T2", 5, List.of("T3"));
+        Task task3 = createTask("T3", 8, List.of("T1"));
+        List<Task> tasks = List.of(task1, task2, task3);
+
+        CircularDependencyException exception = assertThrows(
+                CircularDependencyException.class,
+                () -> cpmService.calculateCriticalPath(tasks),
+                "Should throw CircularDependencyException for complex circular dependency chain"
+        );
+
+        assertTrue(exception.getMessage().toLowerCase().contains("circular"),
+                "Exception message should mention circular dependencies");
+    }
+
+    @Test
+    @DisplayName("Should throw CircularDependencyException for self-referencing task")
+    void testSelfReferencingTask() {
+        Task task = createTask("T1", 10, List.of("T1"));
+        List<Task> tasks = List.of(task);
+
+        CircularDependencyException exception = assertThrows(
+                CircularDependencyException.class,
+                () -> cpmService.calculateCriticalPath(tasks),
+                "Should throw CircularDependencyException for self-referencing task"
+        );
+
+        assertTrue(exception.getMessage().contains("T1"),
+                "Exception message should mention the problematic task");
+    }
+
+    @Test
+    @DisplayName("Should handle tasks with null dependencies gracefully")
+    void testNullDependenciesInTask() {
+        Task task = createTask("T1", 10, null);
+
+        int duration = cpmService.calculateCriticalPath(List.of(task));
+
+        assertEquals(10, duration, "Should handle null dependencies");
+        assertTrue(task.isCritical(), "Task should be critical");
+    }
+
+    @Test
+    @DisplayName("Should correctly identify non-critical tasks with slack in complex network")
+    void testSlackCalculation() {
+        /*
+         * T1 (10) -> T2 (5)  -> T4 (5)
+         *         -> T3 (15) ->
+         * T3 is critical path, T2 has slack
+         */
+        Task task1 = createTask("T1", 10, Collections.emptyList());
+        Task task2 = createTask("T2", 5, List.of("T1"));
+        Task task3 = createTask("T3", 15, List.of("T1"));
+        Task task4 = createTask("T4", 5, List.of("T2", "T3"));
+
+        int duration = cpmService.calculateCriticalPath(List.of(task1, task2, task3, task4));
+
+        assertEquals(30, duration, "Project duration should be 10 + 15 + 5 = 30");
+        assertTrue(task1.isCritical(), "Task 1 should be critical");
+        assertFalse(task2.isCritical(), "Task 2 should not be critical (has slack)");
+        assertTrue(task3.isCritical(), "Task 3 should be critical");
+        assertTrue(task4.isCritical(), "Task 4 should be critical");
+        assertTrue(task2.getSlack() > 0, "Task 2 should have positive slack");
+        assertEquals(10, task2.getSlack(), "Task 2 should have 10 units of slack");
     }
 
     /**

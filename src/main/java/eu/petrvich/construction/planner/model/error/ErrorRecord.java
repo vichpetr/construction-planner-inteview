@@ -9,8 +9,6 @@ import org.jspecify.annotations.Nullable;
 
 import java.io.Serializable;
 import java.time.ZonedDateTime;
-import java.util.List;
-import java.util.Map;
 
 @Schema(
         description = "Standardized error response for external API consumers"
@@ -21,8 +19,6 @@ public record ErrorRecord(@JsonFormat(shape = Shape.STRING, pattern = "yyyy-MM-d
                           String message,
                           @Nullable String path,
                           String errorCode,
-                          @Nullable List<ValidationError> validationErrors,
                           @Nullable String traceId,
-                          @Nullable String spanId,
-                          @Nullable Map<String, Object> additionalInfo) implements Serializable {
+                          @Nullable String spanId) implements Serializable {
 }
