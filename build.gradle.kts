@@ -1,5 +1,6 @@
 plugins {
     java
+    jacoco
     id("org.springframework.boot")
     id("io.spring.dependency-management")
 }
@@ -58,6 +59,26 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport) // Generate coverage report after tests
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test) // Tests are required to run before generating the report
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+}
+
+tasks.jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = "0.80".toBigDecimal() // 80% code coverage minimum
+            }
+        }
+    }
 }
 
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {

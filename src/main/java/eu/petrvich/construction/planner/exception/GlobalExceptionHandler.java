@@ -74,14 +74,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorRecord handleGenericException(Exception e, HttpServletRequest request) {
-        boolean trackingEnabled = appProperties.getErrorTracking().isEnabled();
-        String errorId = trackingEnabled ? UUID.randomUUID().toString() : null;
+        String errorId = UUID.randomUUID().toString();
         logUnexpectedError(e, request, errorId);
 
-        String message = trackingEnabled && errorId != null
-                ? "An unexpected error occurred. Error ID: " + errorId
-                : "An unexpected error occurred";
-
+        String message = "An unexpected error occurred. Error ID: " + errorId;
         return ErrorRecordBuilder.create(HttpStatus.INTERNAL_SERVER_ERROR, message, "INTERNAL_SERVER_ERROR", request);
     }
 
