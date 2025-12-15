@@ -4,6 +4,7 @@ import eu.petrvich.construction.planner.model.Task;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -50,7 +51,12 @@ public class TaskDataService {
             throw new IllegalArgumentException("Task list cannot be null or empty");
         }
 
-        log.info("Registering {} tasks, replacing existing {} tasks", newTasks.size(), tasks.size());
+        if (!CollectionUtils.isEmpty(tasks)) {
+            log.info("Registering {} tasks, replacing existing {} tasks", newTasks.size(), tasks.size());
+        } else {
+            log.info("Registering {} tasks", newTasks.size());
+        }
+
         this.tasks = newTasks;
         this.projectPlannerService.initializeProject(tasks);
         log.info("Successfully registered {} tasks", tasks.size());

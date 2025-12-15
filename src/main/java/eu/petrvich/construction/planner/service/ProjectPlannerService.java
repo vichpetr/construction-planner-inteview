@@ -23,7 +23,7 @@ public class ProjectPlannerService {
 
     @Getter
     private ProjectStatistics projectStatistics;
-    private List<Task> calculatedTasks;
+    private List<Task> tasks;
 
     /**
      * Initializes the project by performing CPM calculation on startup.
@@ -31,56 +31,15 @@ public class ProjectPlannerService {
     public void initializeProject(List<Task> tasks) {
         log.info("Initializing project planner...");
 
-        calculatedTasks = tasks;
-        int totalDuration = cpmService.calculateCriticalPath(calculatedTasks);
-        int peakCrew = crewUtilizationService.calculatePeakCrewUtilization(calculatedTasks);
+        this.tasks = tasks;
+        int totalDuration = cpmService.calculateCriticalPath(tasks);
+        int peakCrew = crewUtilizationService.calculatePeakCrewUtilization(tasks);
         projectStatistics = new ProjectStatistics(totalDuration, peakCrew);
 
         log.info("Project initialization complete:");
-        log.info("  - Total tasks: {}", calculatedTasks.size());
+        log.info("  - Total tasks: {}", tasks.size());
         log.info("  - Project duration: {} time units", totalDuration);
         log.info("  - Peak crew utilization: {} crew members", peakCrew);
-    }
-
-    /**
-     * Calculates project statistics for provided tasks.
-     *
-     * @param tasks List of tasks to calculate
-     * @return Project statistics with duration and peak crew
-     */
-    public ProjectStatistics calculateProject(List<Task> tasks) {
-        if (tasks == null || tasks.isEmpty()) {
-            throw new IllegalArgumentException("Task list cannot be null or empty");
-        }
-
-        log.info("Calculating project for {} tasks", tasks.size());
-
-        int totalDuration = cpmService.calculateCriticalPath(tasks);
-        int peakCrew = crewUtilizationService.calculatePeakCrewUtilization(tasks);
-
-        log.info("Project calculation complete: duration={}, peakCrew={}", totalDuration, peakCrew);
-
-        return new ProjectStatistics(totalDuration, peakCrew);
-    }
-
-    /**
-     * Calculates project and returns tasks with intervals.
-     *
-     * @param tasks List of tasks to calculate
-     * @return List of tasks with calculated intervals
-     */
-    public List<TaskWithIntervals> calculateTasksWithIntervals(List<Task> tasks) {
-        if (tasks == null || tasks.isEmpty()) {
-            throw new IllegalArgumentException("Task list cannot be null or empty");
-        }
-
-        log.info("Calculating tasks with intervals for {} tasks", tasks.size());
-
-        cpmService.calculateCriticalPath(tasks);
-
-        return tasks.stream()
-                .map(this::convertToTaskWithIntervals)
-                .toList();
     }
 
     /**
@@ -89,7 +48,7 @@ public class ProjectPlannerService {
      * @return List of tasks with intervals
      */
     public List<TaskWithIntervals> getTasksWithIntervals() {
-        return calculatedTasks.stream()
+        return tasks.stream()
                 .map(this::convertToTaskWithIntervals)
                 .toList();
     }

@@ -1,7 +1,7 @@
 package eu.petrvich.construction.planner.controller;
 
-import eu.petrvich.construction.planner.exception.ErrorResponse;
 import eu.petrvich.construction.planner.model.Task;
+import eu.petrvich.construction.planner.model.error.ErrorRecord;
 import eu.petrvich.construction.planner.service.TaskDataService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -10,10 +10,16 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
@@ -22,17 +28,14 @@ import java.util.Map;
  * REST controller for managing task registration and storage.
  * Provides endpoints to dynamically register and clear tasks in memory.
  */
-@RestController
-@RequestMapping("/api/tasks")
 @Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/tasks")
 @Tag(name = "Task Management", description = "APIs for managing task registration and storage in memory")
 public class TaskController {
 
     private final TaskDataService taskDataService;
-
-    public TaskController(TaskDataService taskDataService) {
-        this.taskDataService = taskDataService;
-    }
 
     /**
      * Registers a new list of tasks, replacing any existing tasks in memory.
@@ -60,15 +63,13 @@ public class TaskController {
                     description = "Invalid request - task list is null or empty",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
-                            schema = @Schema(implementation = ErrorResponse.class)
+                            schema = @Schema(implementation = ErrorRecord.class)
                     )
             )
     })
-    @PostMapping("/register")
-    public ResponseEntity<Map<String, Object>> registerTasks(
-            @Parameter(description = "List of tasks to register", required = true)
-            @RequestBody List<Task> tasks) {
-        log.info("POST /api/tasks/register with {} tasks", tasks != null ? tasks.size() : 0);
+    @PostMapping
+    public ResponseEntity<Map<String, Object>> registerTasks(@Parameter(description = "List of tasks to register", required = true) @RequestBody List<Task> tasks) {
+        log.info("POST /api/tasks with {} tasks", tasks != null ? tasks.size() : 0);
 
         taskDataService.registerTasks(tasks);
 
@@ -98,9 +99,9 @@ public class TaskController {
                     )
             )
     })
-    @DeleteMapping("/clear")
+    @DeleteMapping()
     public ResponseEntity<Map<String, String>> clearTasks() {
-        log.info("DELETE /api/tasks/clear");
+        log.info("DELETE /api/tasks");
 
         taskDataService.clearTasks();
 

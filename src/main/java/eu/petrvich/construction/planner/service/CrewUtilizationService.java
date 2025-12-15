@@ -28,7 +28,6 @@ public class CrewUtilizationService {
             return 0;
         }
 
-        // Find the project duration
         int projectDuration = tasks.stream()
                 .mapToInt(task -> task.getStartInterval() != null ?
                         task.getStartInterval() + task.getDuration() : 0)
@@ -40,10 +39,8 @@ public class CrewUtilizationService {
             return 0;
         }
 
-        // Track crew count at each time interval
-        Map<Integer, Integer> crewByInterval = new HashMap<>();
 
-        // For each task, add its crew to all intervals it spans
+        Map<Integer, Integer> crewByInterval = new HashMap<>();
         for (Task task : tasks) {
             if (task.getStartInterval() == null) {
                 log.warn("Task {} has no start interval set", task.getTaskCode());
@@ -54,13 +51,11 @@ public class CrewUtilizationService {
             int end = start + task.getDuration();
             int crewCount = task.getCrewCount();
 
-            // Add crew count to each interval the task spans
             for (int interval = start; interval < end; interval++) {
                 crewByInterval.merge(interval, crewCount, Integer::sum);
             }
         }
 
-        // Find the peak utilization
         int peakUtilization = crewByInterval.values().stream()
                 .mapToInt(Integer::intValue)
                 .max()
