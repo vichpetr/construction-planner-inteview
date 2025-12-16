@@ -67,7 +67,7 @@ This application implements the Critical Path Method (CPM) to determine the most
 - [x] API documentation
 - [x] Algorithm explanation
 - [x] How to run the application
-- [x] Example requests and responses
+- [x] Example requests and responses (see new HTTP collections under `development/`)
 
 ## Technology Stack
 - Java 25
@@ -171,9 +171,18 @@ curl http://localhost:8080/api/tasks
 curl http://localhost:8080/api/tasks/count
 
 # Register new tasks (replaces existing tasks)
+# Note: example payloads are available in development/*.http files
 curl -X POST http://localhost:8080/api/tasks \
   -H "Content-Type: application/json" \
-  -d @tasks.json
+  -d '{
+    "taskCode": "A",
+    "operationName": "Start",
+    "elementName": "Demo",
+    "duration": 1,
+    "crew": { "name": "Demo Crew", "assignment": 1 },
+    "equipment": [],
+    "dependencies": []
+  }'
 
 # Clear all tasks
 curl -X DELETE http://localhost:8080/api/tasks
@@ -198,8 +207,22 @@ curl http://localhost:8080/actuator/caches
 ### API Documentation
 
 Interactive API documentation is available at:
-- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
 - OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+
+### Developer HTTP Collections
+
+The repository includes runnable HTTP request collections under the `development/` folder for quick testing in IntelliJ IDEA or via curl:
+
+- `development/tasks-basic.http` — register/list/count/clear a small set of tasks
+- `development/tasks-from-file.http` — POST the large demo dataset from `development/tasks.json`
+- `development/project-planning.http` — get project statistics and tasks with intervals
+- `development/examples-parallel.http` — minimal parallel workflow example
+- `development/errors.http` — negative cases (invalid dependency, circular dependency, empty list) and clear-then-stats
+
+How to run in IntelliJ IDEA:
+- Open any of the files above; click the gutter run icon next to a request or press Ctrl/Cmd+Enter.
+- Ensure the app is running locally on port 8080, or adjust the request host/port as needed.
 
 ## Implemented Features
 
@@ -295,8 +318,14 @@ src/
 │   │   └── utils/
 │   │       └── ErrorRecordBuilder.java             # Error response builder
 │   └── resources/
-│       ├── application.properties                  # Configuration
-│       └── tasks.json                              # Task data (1304 tasks)
+│       └── application.properties                  # Configuration
+├── development/
+│   ├── tasks-basic.http                            # Register/list/count/clear flow
+│   ├── tasks-from-file.http                        # POST tasks from development/tasks.json
+│   ├── project-planning.http                       # Stats and tasks-with-intervals
+│   ├── examples-parallel.http                      # Parallel workflow example
+│   ├── errors.http                                 # Negative cases collection
+│   └── tasks.json                                  # Large demo dataset (1304 tasks)
 └── test/
     └── java/eu/petrvich/construction/planner/
         ├── service/                                # Unit tests
@@ -337,7 +366,7 @@ The `CrewUtilizationService` tracks crew assignments across time intervals:
 
 ### Results from Actual Data
 
-Running the application with the provided LEO2-BE.json file:
+Running the application with the provided demo dataset (`development/tasks.json`):
 
 ```json
 {

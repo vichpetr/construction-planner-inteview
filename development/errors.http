@@ -1,0 +1,48 @@
+### Error Handling Scenarios (standalone)
+
+### 1) Invalid dependency (expects 400 INVALID_TASK_DEPENDENCY)
+POST http://localhost:8080/api/tasks
+Content-Type: application/json
+
+[
+  {
+    "taskCode": "A",
+    "operationName": "Task A",
+    "elementName": "Element A",
+    "duration": 5,
+    "crew": { "name": "Crew A", "assignment": 1 },
+    "equipment": [],
+    "dependencies": ["NONEXISTENT"]
+  }
+]
+
+### 2) Circular dependency (expects 400 CIRCULAR_DEPENDENCY)
+POST http://localhost:8080/api/tasks
+Content-Type: application/json
+
+[
+  {
+    "taskCode": "A",
+    "operationName": "Task A",
+    "elementName": "Element A",
+    "duration": 5,
+    "crew": { "name": "Crew A", "assignment": 1 },
+    "equipment": [],
+    "dependencies": ["B"]
+  },
+  {
+    "taskCode": "B",
+    "operationName": "Task B",
+    "elementName": "Element B",
+    "duration": 3,
+    "crew": { "name": "Crew B", "assignment": 1 },
+    "equipment": [],
+    "dependencies": ["A"]
+  }
+]
+
+### 3) Empty task list (expects 400 INVALID_PARAMETER_VALUE)
+POST http://localhost:8080/api/tasks
+Content-Type: application/json
+
+[]

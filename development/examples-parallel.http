@@ -1,0 +1,53 @@
+### Parallel Tasks Example (valid payloads)
+
+### Register a parallel workflow (replaces existing tasks)
+POST http://localhost:8080/api/tasks
+Content-Type: application/json
+
+[
+  {
+    "taskCode": "START",
+    "operationName": "Project Start",
+    "elementName": "Project",
+    "duration": 1,
+    "crew": { "name": "PM", "assignment": 0 },
+    "equipment": [],
+    "dependencies": []
+  },
+  {
+    "taskCode": "PARALLEL_A",
+    "operationName": "Parallel Task A",
+    "elementName": "Building A",
+    "duration": 10,
+    "crew": { "name": "Crew A", "assignment": 5 },
+    "equipment": [],
+    "dependencies": ["START"]
+  },
+  {
+    "taskCode": "PARALLEL_B",
+    "operationName": "Parallel Task B",
+    "elementName": "Building B",
+    "duration": 8,
+    "crew": { "name": "Crew B", "assignment": 5 },
+    "equipment": [],
+    "dependencies": ["START"]
+  },
+  {
+    "taskCode": "PARALLEL_C",
+    "operationName": "Parallel Task C",
+    "elementName": "Building C",
+    "duration": 12,
+    "crew": { "name": "Crew C", "assignment": 5 },
+    "equipment": [],
+    "dependencies": ["START"]
+  },
+  {
+    "taskCode": "END",
+    "operationName": "Project Completion",
+    "elementName": "Project",
+    "duration": 1,
+    "crew": { "name": "PM", "assignment": 0 },
+    "equipment": [],
+    "dependencies": ["PARALLEL_A", "PARALLEL_B", "PARALLEL_C"]
+  }
+]

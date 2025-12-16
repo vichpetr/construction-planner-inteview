@@ -1,0 +1,53 @@
+### Basic Task Management
+
+### 1) Register a simple set of tasks (replaces existing tasks)
+POST http://localhost:8080/api/tasks
+Content-Type: application/json
+
+[
+  {
+    "taskCode": "A",
+    "operationName": "Foundation",
+    "elementName": "Building A",
+    "duration": 5,
+    "crew": { "name": "Crew 1", "assignment": 3 },
+    "equipment": [ { "name": "Excavator", "quantity": 1 } ],
+    "dependencies": []
+  },
+  {
+    "taskCode": "B",
+    "operationName": "Walls",
+    "elementName": "Building A",
+    "duration": 10,
+    "crew": { "name": "Crew 2", "assignment": 5 },
+    "equipment": [ { "name": "Crane", "quantity": 1 } ],
+    "dependencies": ["A"]
+  },
+  {
+    "taskCode": "C",
+    "operationName": "Roof",
+    "elementName": "Building A",
+    "duration": 7,
+    "crew": { "name": "Crew 3", "assignment": 4 },
+    "equipment": [
+      { "name": "Crane", "quantity": 1 },
+      { "name": "Scaffolding", "quantity": 1 }
+    ],
+    "dependencies": ["B"]
+  }
+]
+
+### 2) Get all registered tasks
+GET http://localhost:8080/api/tasks
+Accept: application/json
+
+### 3) Get task count
+GET http://localhost:8080/api/tasks/count
+Accept: application/json
+
+### 4) Clear all tasks
+DELETE http://localhost:8080/api/tasks
+
+### Then try to get statistics (should return 0/0)
+GET http://localhost:8080/api/project/statistics
+Accept: application/json

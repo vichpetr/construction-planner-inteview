@@ -1,0 +1,9 @@
+### Project Planning (uses currently registered tasks)
+
+### 1) Get project statistics
+GET http://localhost:8080/api/project/statistics
+Accept: application/json
+
+### 2) Get tasks with calculated intervals
+GET http://localhost:8080/api/project/tasks
+Accept: application/json
